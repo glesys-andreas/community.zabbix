@@ -346,6 +346,7 @@ def main():
         desc=dict(type='str', required=False, default="Created by Ansible"),
         collect_data=dict(type='bool', required=False, default=True),
         visible_name=dict(type='bool', required=False, default=True),
+        active_since=dict(type='int', required=False),
         tags=dict(
             type='list',
             elements='dict',
@@ -416,6 +417,8 @@ def main():
 
         now = datetime.datetime.now().replace(second=0)
         start_time = int(time.mktime(now.timetuple()))
+        if active_since:
+            start_time = active_since
         period = 60 * int(minutes)  # N * 60 seconds
 
         if host_groups:
