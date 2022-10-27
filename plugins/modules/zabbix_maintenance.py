@@ -201,7 +201,7 @@ class MaintenanceModule(ZabbixBase):
         return 0, None, None
 
     def update_maintenance(self, maintenance_id, group_ids, host_ids,
-                           start_time, maintenance_type, period, desc, tags):
+                           start_time, maintenance_type, period, desc, tags, timeperiods):
         end_time = start_time + period
         try:
             parameters = {
@@ -223,6 +223,8 @@ class MaintenanceModule(ZabbixBase):
             else:
                 if LooseVersion(self._zbx_api_version) < LooseVersion('6.0'):
                     parameters['tags'] = []
+            if timeperiods is not None:
+                parameters['timeperiods'] = timeperiods
             self._zapi.maintenance.update(parameters)
         # zabbix_api can call sys.exit() so we need to catch SystemExit here
         except (Exception, SystemExit) as e:
@@ -353,6 +355,19 @@ def main():
                 operator=dict(type='int', default=2),
                 value=dict(type='str', default='')
             )
+        ),
+        timeperiods=dict(
+            type='list',
+            elements='dict',
+            required=False,
+            options=dict(
+                timeperiod_type=dict(type='int', default=0),
+                every=dict(type='int', default=1),
+                dayofweek=dict(type='int', default=2),
+                start_time=dict(type='int', default=0),
+                period=dict(type='int', default=3600),
+
+            )
         )
     ))
     module = AnsibleModule(
@@ -377,6 +392,8 @@ def main():
     collect_data = module.params['collect_data']
     visible_name = module.params['visible_name']
     tags = module.params['tags']
+    timeperiods = module.params['timeperiods']
+    active_since = module.params['active_since']
 
     if collect_data:
         maintenance_type = 0
@@ -426,7 +443,7 @@ def main():
                 changed = True
             else:
                 (rc, data, error) = maint.update_maintenance(
-                    maintenance["maintenanceid"], group_ids, host_ids, start_time, maintenance_type, period, desc, tags)
+                    maintenance["maintenanceid"], group_ids, host_ids, start_time, maintenance_type, period, desc, tags, timeperiods)
                 if rc == 0:
                     changed = True
                 else:
@@ -438,7 +455,7 @@ def main():
                 changed = True
             else:
                 (rc, data, error) = maint.create_maintenance(
-                    group_ids, host_ids, start_time, maintenance_type, period, name, desc, tags)
+                    group_ids, host_ids, start_time, maintenance_type, period, name, desc, tags, timeperiods)
                 if rc == 0:
                     changed = True
                 else:
